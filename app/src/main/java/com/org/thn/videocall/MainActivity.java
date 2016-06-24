@@ -1,118 +1,89 @@
 package com.org.thn.videocall;
 
-import android.os.Handler;
+import android.media.MediaPlayer;
+import android.net.Uri;
+import android.os.ParcelFileDescriptor;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.MediaController;
 import android.widget.TextView;
+import android.widget.VideoView;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
+import com.org.thn.videocall.com.org.thn.videocall.service.ClientThread;
+
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
-import java.net.InetAddress;
-import java.net.Socket;
-import java.net.UnknownHostException;
 
-public class MainActivity extends AppCompatActivity {
 
-    private Socket socket = null;
-    Handler updateUi ;
+public class MainActivity extends AppCompatActivity implements ClientThread.LayOutListener{
+    private ClientThread clientThread ;
+
+    SurfaceView surfaceView;
+    VideoView videoHolder;
+    MediaPlayer mp;
+    private SurfaceHolder holder;
+    int count = 0;
+    boolean first = true;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        updateUi = new Handler();
-        new Thread(new ClientThread()).start();
+        surfaceView = (SurfaceView)findViewById(R.id.surfaceView);
+        clientThread = ClientThread.getInstance();
+        clientThread.setLayOutListener(this);
+        videoHolder = (VideoView)findViewById(R.id.videoView);
+//        videoHolder.setMediaController(new MediaController(this));
+        holder = videoHolder.getHolder();
+        holder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
+        mp = new MediaPlayer();
+        Uri video = Uri.parse("android.resource://" + getPackageName() + "/"
+                + R.raw.mov_bbb);
+        videoHolder.setVideoURI(video);
+//        videoHolder.start();
+        new Thread(clientThread).start();
     }
     public void send(View v){
         EditText et = (EditText) findViewById(R.id.ed_sms);
         String str = et.getText().toString();
         if (!TextUtils.isEmpty(str)) {
-            sendData(str);
+            clientThread.sendData(str);
         }
     }
     public void quit(View v){
-        sendData("QUIT");
+        clientThread.sendData("QUIT");
     }
     public void connect(View v){
-        new Thread(new ClientThread()).start();
-    }
-    private void sendData(String data){
-        try {
-            String str = data;
-            PrintWriter out = new PrintWriter(new BufferedWriter(
-                    new OutputStreamWriter(socket.getOutputStream())), true);
-            out.println(str);
-        }catch (UnknownHostException e){
-            android.util.Log.e("socket:",e.getMessage());
-        }catch (IOException e){
-            android.util.Log.e("socket:",e.getMessage());
-        }catch (Exception e){
-            android.util.Log.e("socket:",e.getMessage());
+        if (!clientThread.isConnect()) {
+            new Thread(clientThread).start();
         }
     }
-    class ClientThread implements Runnable {
-        BufferedReader is=null;
-        PrintWriter os=null;
-        String line=null;
-        @Override
-        public void run() {
-            try {
-                System.out.println("ServerIP:"+InetAddress.getLocalHost().getHostAddress());
-                InetAddress serverAddr = InetAddress.getByName("172.25.65.62");
-                socket = new Socket(serverAddr,8400);
-            } catch (UnknownHostException e) {
-                e.printStackTrace();
-            } catch (IOException e){
-                e.printStackTrace();
-            }
-            try{
-                is=new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                os= new PrintWriter(socket.getOutputStream());
-            }catch (IOException e){
-                android.util.Log.e("socket:",e.getMessage());
-            }
-            String response=null;
-            try {
-                line=is.readLine();
-                while(line.compareTo("QUIT")!=0){
-                    updateUi.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            TextView textView = (TextView)findViewById(R.id.view_sms);
-                            textView.setText(line);
-                        }
-                    });
 
-                    line=is.readLine();
-                }
-            } catch (IOException e) {
-                android.util.Log.e("socket:",e.getMessage());
-            } finally {
-                try {
-                    System.out.println("Connection Closing..");
-                    if (is != null) {
-                        is.close();
-                        System.out.println(" Socket Input Stream Closed");
-                    }
 
-                    if (os != null) {
-                        os.close();
-                        System.out.println("Socket Out Closed");
-                    }
-                    if (socket != null) {
-                        socket.close();
-                    }
+    @Override
+    public void onUpdateLayout(Object object) {
+//        TextView textView = (TextView)findViewById(R.id.view_sms);
+//        textView.setText((String)object);
 
-                } catch (IOException ie) {
-                    System.out.println("Socket Close Error");
+            if (object instanceof ParcelFileDescriptor) {
+                if (first) {
+                    first = false;
+                    try {
+                        ParcelFileDescriptor pfd = (ParcelFileDescriptor) object;
+                        mp.setDataSource(pfd.getFileDescriptor());
+                        pfd.close();
+                        mp.setDisplay(holder);
+//                        mp.prepareAsync();
+                        mp.start();
+                    } catch (IOException e) {
+                        android.util.Log.e("socket:", "_line81" + e.getMessage());
+                    }
                 }
             }
-        }
+
     }
+
 }
