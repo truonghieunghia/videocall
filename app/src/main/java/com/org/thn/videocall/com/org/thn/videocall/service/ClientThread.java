@@ -126,7 +126,7 @@ public class ClientThread implements Runnable {
         while (socket == null || socket.isClosed()) {
             try {
                 System.out.println("ServerIP:" + InetAddress.getLocalHost().getHostAddress());
-                InetAddress serverAddr = InetAddress.getByName("172.25.65.62");
+                InetAddress serverAddr = InetAddress.getByName("192.168.1.100");
                 socket = new Socket(serverAddr, 8400);
                 Thread.sleep(100); // simulate work
             } catch (InterruptedException x) {
