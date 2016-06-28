@@ -1,5 +1,6 @@
 package com.org.thn.videocall;
 
+import android.content.Intent;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.ParcelFileDescriptor;
@@ -10,11 +11,10 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
 import android.widget.EditText;
-import android.widget.MediaController;
-import android.widget.TextView;
 import android.widget.VideoView;
 
-import com.org.thn.videocall.com.org.thn.videocall.service.ClientThread;
+import com.org.thn.videocall.service.ClientService;
+import com.org.thn.videocall.service.ClientThread;
 
 import java.io.IOException;
 
@@ -44,7 +44,7 @@ public class MainActivity extends AppCompatActivity implements ClientThread.LayO
                 + R.raw.mov_bbb);
         videoHolder.setVideoURI(video);
 //        videoHolder.start();
-        new Thread(clientThread).start();
+        startService(new Intent(this, ClientService.class));
     }
     public void send(View v){
         EditText et = (EditText) findViewById(R.id.ed_sms);

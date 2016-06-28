@@ -16,7 +16,7 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
         <activity
-            android:name=".MainActivity"
+            android:name=".VideoCallActivity"
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:launchMode="singleTop">
             <intent-filter>
@@ -35,7 +35,12 @@
         <activity
             android:name=".CallActivity"
             android:label="@string/title_activity_call"
-            android:theme="@style/AppTheme.NoActionBar"></activity>
+            android:theme="@style/AppTheme.NoActionBar" />
+
+        <service
+            android:name=".service.ClientService"
+            android:exported="false"></service>
+
     </application>
 
 </manifest>
