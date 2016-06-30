@@ -26,6 +26,7 @@ public class ClientService extends Service {
     private Context mContext;
     private Boolean mkeepGoing = false;
     private String mUserName = "acnovn";
+
     @Override
     public void onCreate() {
         super.onCreate();
@@ -40,9 +41,49 @@ public class ClientService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        Toast.makeText(mContext,"Service running",Toast.LENGTH_LONG).show();
+        Toast.makeText(mContext, "Service running", Toast.LENGTH_LONG).show();
         if (!mkeepGoing) {
-            new Thread(new ClientThread()).start();
+//            new Thread(new ClientThread()).start();
+            try {
+                InetAddress serverAddr = InetAddress.getByName("172.25.65.62");
+                mSocket = new Socket(serverAddr, 8400);
+                mkeepGoing = true;
+            } catch (UnknownHostException e) {
+                mkeepGoing = false;
+                android.util.Log.e("ConnectError", e.getMessage());
+            } catch (IOException e) {
+                mkeepGoing = false;
+                android.util.Log.e("ConnectError", e.getMessage());
+            }
+            if (!mkeepGoing) {
+                super.onStartCommand(intent, flags, startId);
+            }
+            try {
+                mOut = mSocket.getOutputStream();
+                mOut.write(("00" + mUserName + "KAERB").getBytes());
+                mOut.flush();
+                mIn = mSocket.getInputStream();
+
+                while (mkeepGoing) {
+                    int byte_count = mIn.read();
+                    if (byte_count == -1) {
+                        mkeepGoing = false;
+                    }
+                }
+                mkeepGoing = false;
+                if (mSocket != null) {
+                    mSocket.close();
+                }
+                if (mIn != null) {
+                    mIn.close();
+                }
+                if (mOut != null) {
+                    mOut.close();
+                }
+            } catch (IOException e) {
+                mkeepGoing = false;
+                android.util.Log.e("ReadDataError", e.getMessage());
+            }
         }
         return super.onStartCommand(intent, flags, startId);
     }
@@ -57,46 +98,53 @@ public class ClientService extends Service {
         @Override
         public void run() {
             connect();
+            if (!mkeepGoing)
+                return;
             try {
                 mOut = mSocket.getOutputStream();
-                mOut.write(("00"+mUserName+"KAERB").getBytes());
+                mOut.write(("00" + mUserName + "KAERB").getBytes());
                 mOut.flush();
                 mIn = mSocket.getInputStream();
 
-                while (mkeepGoing ){
-
+                while (mkeepGoing) {
+                    int byte_count = mIn.read();
+                    if (byte_count == -1) {
+                        mkeepGoing = false;
+                    }
                 }
                 mkeepGoing = false;
-                if (mSocket!=null){
+                if (mSocket != null) {
                     mSocket.close();
                 }
-                if (mIn!=null){
+                if (mIn != null) {
                     mIn.close();
                 }
-                if (mOut!=null){
+                if (mOut != null) {
                     mOut.close();
                 }
             } catch (IOException e) {
-                mkeepGoing= false;
-                android.util.Log.e("ReadDataError",e.getMessage());
+                mkeepGoing = false;
+                android.util.Log.e("ReadDataError", e.getMessage());
             }
 
         }
-        private void connect(){
+
+        private void connect() {
             try {
                 InetAddress serverAddr = InetAddress.getByName("172.25.65.62");
                 mSocket = new Socket(serverAddr, 8400);
                 mkeepGoing = true;
             } catch (UnknownHostException e) {
                 mkeepGoing = false;
-                android.util.Log.e("ConnectError",e.getMessage());
+                android.util.Log.e("ConnectError", e.getMessage());
             } catch (IOException e) {
                 mkeepGoing = false;
-                android.util.Log.e("ConnectError",e.getMessage());
+                android.util.Log.e("ConnectError", e.getMessage());
             }
         }
     }
-    class ClientSender extends Thread{
+
+    class ClientSender extends Thread {
 
     }
 }
